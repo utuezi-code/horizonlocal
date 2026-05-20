@@ -9,7 +9,7 @@ set -euo pipefail
 
 REPO_URL="${REPO_URL:-https://github.com/utuezi-code/horizonlocal.git}"
 APP_DIR="${APP_DIR:-/opt/horizonlocal}"
-BRANCH="${BRANCH:-main}"
+BRANCH="${BRANCH:-claude/build-from-spec-vmJu1}"
 
 log() { echo -e "\033[1;34m[$(date +%H:%M:%S)]\033[0m $*"; }
 err() { echo -e "\033[1;31m[ERREUR]\033[0m $*" >&2; exit 1; }
