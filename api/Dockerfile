@@ -38,11 +38,11 @@ RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --opti
 # Copy app
 COPY . .
 
-# Finish composer install (runs post-autoload scripts)
-RUN composer dump-autoload --optimize \
- && mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache \
+# Create required directories BEFORE composer scripts (package:discover needs bootstrap/cache)
+RUN mkdir -p storage/framework/sessions storage/framework/views storage/framework/cache storage/logs bootstrap/cache \
  && chown -R www-data:www-data storage bootstrap/cache \
- && chmod -R 775 storage bootstrap/cache
+ && chmod -R 775 storage bootstrap/cache \
+ && composer dump-autoload --optimize
 
 # Nginx config
 RUN echo 'server { \
