@@ -83,11 +83,12 @@ class CheckoutController extends Controller
         $cart->load('items.product');
 
         $subtotal = $this->cartService->getTotal($cart);
+        $discount = (float) ($cart->discount_amount ?? 0);
 
         $shipping = $this->shippingCalculator->calculate($cart, $request->province);
         $shippingCost = array_sum(array_column($shipping, 'fee'));
 
-        $taxes = $this->taxService->calculate($subtotal + $shippingCost, $request->province);
+        $taxes = $this->taxService->calculate($subtotal - $discount + $shippingCost, $request->province);
 
         try {
             $paymentIntent = $this->stripeService->createPaymentIntent(
@@ -103,10 +104,11 @@ class CheckoutController extends Controller
                 'currency' => $paymentIntent->currency,
                 'breakdown' => [
                     'subtotal' => $subtotal,
+                    'discount_amount' => $discount,
                     'shipping_cost' => round($shippingCost, 2),
                     'tax_gst' => $taxes['tps'],
                     'tax_tvq' => $taxes['tvq'],
-                    'total' => $taxes['total'] + $shippingCost,
+                    'total' => $taxes['total'] + $shippingCost - $discount,
                 ],
             ]);
         } catch (\Exception $e) {
@@ -119,48 +121,69 @@ class CheckoutController extends Controller
     public function placeOrder(Request $request): JsonResponse
     {
         $request->validate([
-            'payment_intent_id' => ['required', 'string'],
-            'shipping_address'  => ['required', 'array'],
-            'province'          => ['required', 'string', 'size:2'],
+            'payment_intent_id'          => ['required', 'string'],
+            'shipping_address'           => ['required', 'array'],
+            'shipping_address.name'      => ['required', 'string', 'max:255'],
+            'shipping_address.address'   => ['required', 'string', 'max:255'],
+            'shipping_address.city'      => ['required', 'string', 'max:100'],
+            'shipping_address.province'  => ['required', 'string', 'size:2'],
+            'shipping_address.postal_code' => ['required', 'string', 'max:10'],
+            'province'                   => ['required', 'string', 'size:2'],
         ]);
 
-        $user   = $request->user();
-        $cart   = $this->cartService->getOrCreate($user->id, null);
+        $user = $request->user();
+        $cart = $this->cartService->getOrCreate($user->id, null);
         $cart->load('items.product.vendor');
 
         if ($cart->items()->count() === 0) {
             return response()->json(['message' => 'Le panier est vide.'], 422);
         }
 
-        $subtotal    = $this->cartService->getTotal($cart);
-        $discount    = (float) ($cart->discount_amount ?? 0);
-        $shipping    = $this->shippingCalculator->calculate($cart, $request->province);
-        $shipCost    = array_sum(array_column($shipping, 'fee'));
-        $taxes       = $this->taxService->calculate($subtotal - $discount + $shipCost, $request->province);
+        $addr     = $request->shipping_address;
+        $subtotal = $this->cartService->getTotal($cart);
+        $discount = (float) ($cart->discount_amount ?? 0);
+        $shipping = $this->shippingCalculator->calculate($cart, $request->province);
+        $shipCost = array_sum(array_column($shipping, 'fee'));
+        $taxes    = $this->taxService->calculate($subtotal - $discount + $shipCost, $request->province);
 
         $order = \App\Models\Order::create([
-            'customer_id'       => $user->id,
-            'status'            => 'pending',
-            'subtotal'          => $subtotal,
-            'discount_amount'   => $discount,
-            'coupon_code'       => $cart->coupon_code,
-            'shipping_cost'     => round($shipCost, 2),
-            'tax_gst'           => $taxes['tps'],
-            'tax_tvq'           => $taxes['tvq'],
-            'total'             => $taxes['total'] + $shipCost - $discount,
-            'shipping_address'  => $request->shipping_address,
-            'payment_intent_id' => $request->payment_intent_id,
+            'customer_id'              => $user->id,
+            'status'                   => 'pending',
+            'subtotal'                 => $subtotal,
+            'discount_amount'          => $discount,
+            'coupon_code'              => $cart->coupon_code,
+            'shipping_cost'            => round($shipCost, 2),
+            'tax_gst'                  => $taxes['tps'],
+            'tax_tvq'                  => $taxes['tvq'],
+            'total'                    => round($taxes['total'] + $shipCost - $discount, 2),
+            'stripe_payment_intent_id' => $request->payment_intent_id,
+            'shipping_name'            => $addr['name'],
+            'shipping_address'         => $addr['address'],
+            'shipping_city'            => $addr['city'],
+            'shipping_province'        => $addr['province'],
+            'shipping_postal_code'     => $addr['postal_code'],
         ]);
 
         foreach ($cart->items as $item) {
+            $unitPrice       = (float) ($item->variant?->price ?? $item->product->price);
+            $qty             = (int) $item->quantity;
+            $itemSubtotal    = round($unitPrice * $qty, 2);
+            $commissionRate  = (float) ($item->product->vendor?->commission_rate ?? 10);
+            $commissionAmt   = round($itemSubtotal * $commissionRate / 100, 2);
+            $vendorAmt       = round($itemSubtotal - $commissionAmt, 2);
+
             $order->items()->create([
-                'product_id'  => $item->product_id,
-                'vendor_id'   => $item->product->vendor_id,
-                'variant_id'  => $item->variant_id,
-                'quantity'    => $item->quantity,
-                'unit_price'  => $item->variant?->price ?? $item->product->price,
-                'total_price' => ($item->variant?->price ?? $item->product->price) * $item->quantity,
-                'status'      => 'pending',
+                'product_id'        => $item->product_id,
+                'vendor_id'         => $item->product->vendor_id,
+                'variant_id'        => $item->variant_id,
+                'product_name'      => $item->product->name,
+                'unit_price'        => $unitPrice,
+                'quantity'          => $qty,
+                'subtotal'          => $itemSubtotal,
+                'commission_rate'   => $commissionRate,
+                'commission_amount' => $commissionAmt,
+                'vendor_amount'     => $vendorAmt,
+                'fulfillment_status' => 'pending',
             ]);
         }
 

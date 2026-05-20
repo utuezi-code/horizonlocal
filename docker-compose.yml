@@ -1,19 +1,34 @@
+##############################################################################
+# Horizon Local — Docker Compose
+#
+# Before deploying, create a .env file in this directory with:
+#
+#   APP_KEY=base64:HpN/CsBX1wje9tEb79TlO91Usue7cI0IoTiMCL9x5oA=
+#   STRIPE_KEY=pk_live_...          # or pk_test_... for test mode
+#   STRIPE_SECRET=sk_live_...       # or sk_test_... for test mode
+#   STRIPE_WEBHOOK_SECRET=whsec_... # from your Stripe dashboard
+#   PUBLIC_URL=http://YOUR_AZURE_VM_IP  # e.g. http://20.1.2.3
+#
+# Then run:  docker compose up -d --build
+##############################################################################
+
 services:
   postgres:
     image: postgres:16
     environment:
       POSTGRES_DB: horizonlocal
       POSTGRES_USER: horizon
-      POSTGRES_PASSWORD: horizon
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-horizon}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U horizon"]
       interval: 5s
       timeout: 3s
-      retries: 5
+      retries: 10
 
   redis:
     image: redis:7-alpine
@@ -21,11 +36,12 @@ services:
       - "6379:6379"
     volumes:
       - redisdata:/data
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
-      retries: 5
+      retries: 10
 
   api:
     build: ./api
@@ -37,35 +53,65 @@ services:
       redis:
         condition: service_healthy
     environment:
-      APP_ENV: local
-      APP_DEBUG: "true"
-      APP_URL: http://localhost:8000
+      APP_NAME: "Horizon Local"
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: ${APP_KEY:-base64:HpN/CsBX1wje9tEb79TlO91Usue7cI0IoTiMCL9x5oA=}
+      APP_URL: ${PUBLIC_URL:-http://localhost}:8000
+      APP_LOCALE: fr
+      APP_FALLBACK_LOCALE: fr
+
       DB_CONNECTION: pgsql
       DB_HOST: postgres
       DB_PORT: 5432
       DB_DATABASE: horizonlocal
       DB_USERNAME: horizon
-      DB_PASSWORD: horizon
+      DB_PASSWORD: ${DB_PASSWORD:-horizon}
+
       REDIS_HOST: redis
       REDIS_PORT: 6379
       CACHE_STORE: redis
       SESSION_DRIVER: redis
       QUEUE_CONNECTION: redis
-      FRONTEND_URL: http://localhost:3000
+
+      STRIPE_KEY: ${STRIPE_KEY:-}
+      STRIPE_SECRET: ${STRIPE_SECRET:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+
+      MAIL_MAILER: ${MAIL_MAILER:-log}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM_ADDRESS: noreply@horizonlocal.ca
+      MAIL_FROM_NAME: "Horizon Local"
+
+      FRONTEND_URL: ${PUBLIC_URL:-http://localhost}:3000
+    restart: unless-stopped
 
   frontend:
     image: node:22-alpine
     working_dir: /app
     volumes:
       - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
     ports:
       - "3000:3000"
-    command: sh -c "npm install && npm run dev"
+    # Build then start the production server (not dev mode).
+    command: >
+      sh -c "npm install --prefer-offline &&
+             npm run build &&
+             npm start"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000/api
+      # Server-side (SSR/RSC) fetches go to the api container directly.
+      API_URL: http://api:8080/api
+      # Browser fetches go to the public URL — set PUBLIC_URL in .env.
+      NEXT_PUBLIC_API_URL: ${PUBLIC_URL:-http://localhost}:8000/api
+      NEXT_PUBLIC_APP_NAME: "Horizon Local"
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${STRIPE_KEY:-}
+      NODE_ENV: production
     depends_on:
       - api
+    restart: unless-stopped
 
 volumes:
   pgdata:
   redisdata:
+  frontend_node_modules:

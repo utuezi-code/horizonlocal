@@ -12,17 +12,20 @@ class WishlistController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $wishlist = Wishlist::with(['product.images', 'product.vendor:id,store_name,store_slug'])
+        $items = Wishlist::with(['product.images', 'product.vendor:id,store_name,store_slug'])
             ->where('user_id', $request->user()->id)
             ->orderBy('added_at', 'desc')
-            ->paginate($request->get('per_page', 20));
+            ->get();
 
-        return response()->json($wishlist);
+        // Return a flat array of products the frontend can use directly.
+        $products = $items->map(fn ($w) => $w->product)->filter()->values();
+
+        return response()->json($products);
     }
 
     public function store(Request $request, int $productId): JsonResponse
     {
-        $product = Product::findOrFail($productId);
+        Product::findOrFail($productId);
 
         $existing = Wishlist::where('user_id', $request->user()->id)
             ->where('product_id', $productId)
@@ -33,9 +36,9 @@ class WishlistController extends Controller
         }
 
         $wishlist = Wishlist::create([
-            'user_id' => $request->user()->id,
+            'user_id'    => $request->user()->id,
             'product_id' => $productId,
-            'added_at' => now(),
+            'added_at'   => now(),
         ]);
 
         return response()->json(['wishlist' => $wishlist->load('product')], 201);

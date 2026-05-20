@@ -12,7 +12,7 @@ export function useWishlist() {
     setLoading(true);
     try {
       const response = await api.get<Product[]>('/wishlist');
-      setWishlist(response.data);
+      setWishlist(Array.isArray(response.data) ? response.data : []);
     } catch {
       // Not authenticated or no wishlist
     } finally {
@@ -21,7 +21,7 @@ export function useWishlist() {
   }, []);
 
   const addToWishlist = useCallback(async (productId: number) => {
-    await api.post('/wishlist', { product_id: productId });
+    await api.post(`/wishlist/${productId}`, {});
     await fetchWishlist();
   }, [fetchWishlist]);
 

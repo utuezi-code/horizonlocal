@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Models\Cart;
 use App\Models\CartItem;
 use App\Services\CartService;
 use Illuminate\Http\JsonResponse;
@@ -14,26 +15,33 @@ class CartController extends Controller
     {
     }
 
-    private function getCart(Request $request)
+    private function getCart(Request $request): Cart
     {
-        $userId = $request->user()?->id;
+        $userId    = $request->user()?->id;
         $sessionId = $request->header('X-Session-Id') ?? $request->get('session_id');
 
         return $this->cartService->getOrCreate($userId, $sessionId);
     }
 
-    public function show(Request $request): JsonResponse
+    /**
+     * Return a fully-loaded cart object the frontend can use directly.
+     * Shape: { id, items: [{id, product_id, quantity, product, variant}], total, coupon_code, discount_amount }
+     */
+    private function cartResponse(Request $request): JsonResponse
     {
-        $cart = $this->getCart($request);
-
-        $cart->load(['items.product.images', 'items.variant']);
-
+        $cart  = $this->getCart($request);
+        $cart->load(['items.product.images', 'items.product.vendor:id,store_name', 'items.variant']);
         $total = $this->cartService->getTotal($cart);
 
-        return response()->json([
-            'cart' => $cart,
-            'total' => $total,
-        ]);
+        $data          = $cart->toArray();
+        $data['total'] = $total;
+
+        return response()->json($data);
+    }
+
+    public function show(Request $request): JsonResponse
+    {
+        return $this->cartResponse($request);
     }
 
     public function addItem(Request $request): JsonResponse
@@ -41,23 +49,23 @@ class CartController extends Controller
         $request->validate([
             'product_id' => ['required', 'exists:products,id'],
             'variant_id' => ['nullable', 'exists:product_variants,id'],
-            'quantity' => ['required', 'integer', 'min:1'],
+            'quantity'   => ['required', 'integer', 'min:1'],
         ]);
 
         $cart = $this->getCart($request);
 
         try {
-            $item = $this->cartService->addItem(
+            $this->cartService->addItem(
                 $cart,
                 $request->product_id,
                 $request->variant_id,
                 $request->quantity
             );
-
-            return response()->json(['cart_item' => $item->load(['product', 'variant'])], 201);
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
+
+        return $this->cartResponse($request);
     }
 
     public function updateItem(Request $request, int $id): JsonResponse
@@ -66,26 +74,22 @@ class CartController extends Controller
             'quantity' => ['required', 'integer', 'min:0'],
         ]);
 
-        $cart = $this->getCart($request);
+        $cart     = $this->getCart($request);
         $cartItem = CartItem::where('id', $id)->where('cart_id', $cart->id)->firstOrFail();
 
-        $item = $this->cartService->updateItem($cartItem, $request->quantity);
+        $this->cartService->updateItem($cartItem, $request->quantity);
 
-        if ($item === null) {
-            return response()->json(['message' => 'Article supprimé du panier.']);
-        }
-
-        return response()->json(['cart_item' => $item]);
+        return $this->cartResponse($request);
     }
 
     public function removeItem(Request $request, int $id): JsonResponse
     {
-        $cart = $this->getCart($request);
+        $cart     = $this->getCart($request);
         $cartItem = CartItem::where('id', $id)->where('cart_id', $cart->id)->firstOrFail();
 
         $cartItem->delete();
 
-        return response()->json(['message' => 'Article supprimé du panier.']);
+        return $this->cartResponse($request);
     }
 
     public function clear(Request $request): JsonResponse
@@ -93,7 +97,7 @@ class CartController extends Controller
         $cart = $this->getCart($request);
         $cart->items()->delete();
 
-        return response()->json(['message' => 'Panier vidé avec succès.']);
+        return $this->cartResponse($request);
     }
 
     public function applyCoupon(Request $request): JsonResponse
@@ -119,11 +123,7 @@ class CartController extends Controller
             'discount_amount' => $this->cartService->calculateDiscount($cart, $coupon),
         ]);
 
-        return response()->json([
-            'message'         => 'Code promo appliqué.',
-            'coupon_code'     => $cart->coupon_code,
-            'discount_amount' => $cart->discount_amount,
-        ]);
+        return $this->cartResponse($request);
     }
 
     public function removeCoupon(Request $request): JsonResponse
@@ -131,6 +131,6 @@ class CartController extends Controller
         $cart = $this->getCart($request);
         $cart->update(['coupon_code' => null, 'discount_amount' => 0]);
 
-        return response()->json(['message' => 'Code promo retiré.']);
+        return $this->cartResponse($request);
     }
 }

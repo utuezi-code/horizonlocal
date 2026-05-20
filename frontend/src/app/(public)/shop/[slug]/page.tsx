@@ -12,7 +12,7 @@ import type { Product } from '@/types';
 
 async function getProduct(slug: string): Promise<Product | null> {
   try {
-    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api';
+    const apiBase = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api';
     const res = await fetch(`${apiBase}/products/${slug}`, { cache: 'no-store' });
     if (res.status === 404) return null;
     if (!res.ok) return null;
@@ -25,7 +25,7 @@ async function getProduct(slug: string): Promise<Product | null> {
 
 async function getRelated(categoryId: number, excludeSlug: string): Promise<Product[]> {
   try {
-    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api';
+    const apiBase = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api';
     const res = await fetch(`${apiBase}/products?category=${categoryId}&per_page=8`, { cache: 'no-store' });
     if (!res.ok) return [];
     const json = await res.json();

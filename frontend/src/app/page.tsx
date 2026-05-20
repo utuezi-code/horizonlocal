@@ -50,7 +50,7 @@ function formatCAD(amount: number) {
 export default async function HomePage() {
   let newArrivalsProducts: Product[] = [];
   try {
-    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api';
+    const apiBase = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api';
     const res = await fetch(`${apiBase}/products?sort_by=created_at&sort_dir=desc&per_page=8`, {
       cache: 'no-store',
     });

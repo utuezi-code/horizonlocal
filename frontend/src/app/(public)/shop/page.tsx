@@ -61,7 +61,7 @@ async function ProductsList({ searchParams }: { searchParams: ShopSearchParams }
   };
 
   try {
-    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api';
+    const apiBase = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api';
     const res = await fetch(`${apiBase}/products?${qs}`, { cache: 'no-store' });
     if (res.ok) data = await res.json();
   } catch {
