@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #1c61e7;
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-500: #1c61e7;
+  --color-primary-600: #1a56d0;
+  --color-primary-700: #1648b0;
+  --color-accent: #f97316;
+  --color-accent-500: #f97316;
+  --color-accent-600: #ea6c0a;
+  --color-dark: #333333;
+  --font-sans: 'Inter', sans-serif;
+  --background: #ffffff;
+  --foreground: #333333;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #333333;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', Arial, sans-serif;
+}
+
+/* Utility overrides for primary color */
+.bg-primary { background-color: #1c61e7; }
+.text-primary { color: #1c61e7; }
+.border-primary { border-color: #1c61e7; }
+.bg-accent { background-color: #f97316; }
+.text-accent { color: #f97316; }
+.text-dark { color: #333333; }
+
+/* Line clamp utilities */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

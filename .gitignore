@@ -1,0 +1,29 @@
+# Laravel
+api/.env
+api/vendor/
+api/storage/logs/
+api/storage/framework/cache/
+api/storage/framework/sessions/
+api/storage/framework/views/
+api/bootstrap/cache/
+api/node_modules/
+
+# Next.js
+frontend/.env.local
+frontend/.next/
+frontend/node_modules/
+frontend/out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Misc
+*.log
+.env
