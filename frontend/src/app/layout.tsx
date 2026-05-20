@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { QueryProvider } from '@/components/providers/QueryProvider';
 import { AuthProvider } from '@/components/providers/AuthProvider';
+import { StoreHydration } from '@/components/providers/StoreHydration';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { CartDrawer } from '@/components/cart/CartDrawer';
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="fr-CA" className={`${inter.variable} h-full`}>
       <body className="min-h-full flex flex-col bg-white text-[#333333] antialiased">
         <QueryProvider>
+          <StoreHydration />
           <AuthProvider>
             <Header />
             <main className="flex-1">{children}</main>

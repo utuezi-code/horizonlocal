@@ -2,14 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Category } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface SidebarProps {
   categories?: Category[];
-  onPriceChange?: (min: number, max: number) => void;
-  onStockFilter?: (inStockOnly: boolean) => void;
   currentMin?: number;
   currentMax?: number;
   inStockOnly?: boolean;
@@ -55,17 +54,31 @@ function CategoryItem({ category, depth = 0 }: { category: Category; depth?: num
 
 export function Sidebar({
   categories = [],
-  onPriceChange,
-  onStockFilter,
   currentMin = 0,
   currentMax = 1000,
   inStockOnly = false,
 }: SidebarProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [minPrice, setMinPrice] = useState(currentMin);
   const [maxPrice, setMaxPrice] = useState(currentMax);
 
+  const navigate = (updates: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    Object.entries(updates).forEach(([k, v]) => {
+      if (v === null) params.delete(k);
+      else params.set(k, v);
+    });
+    params.delete('page');
+    router.push(`/shop?${params.toString()}`);
+  };
+
   const handlePriceApply = () => {
-    onPriceChange?.(minPrice, maxPrice);
+    navigate({ min_price: String(minPrice), max_price: String(maxPrice) });
+  };
+
+  const handleStockToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    navigate({ in_stock: e.target.checked ? '1' : null });
   };
 
   return (
@@ -84,7 +97,7 @@ export function Sidebar({
             {['Alimentation', 'Mode', 'Maison', 'Beauté', 'Électronique', 'Sport'].map((name) => (
               <Link
                 key={name}
-                href={`/product-category/${name.toLowerCase()}`}
+                href={`/shop?category=${name.toLowerCase()}`}
                 className="block rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#1c61e7] transition-colors"
               >
                 {name}
@@ -136,7 +149,7 @@ export function Sidebar({
           <input
             type="checkbox"
             checked={inStockOnly}
-            onChange={(e) => onStockFilter?.(e.target.checked)}
+            onChange={handleStockToggle}
             className="rounded border-gray-300 text-[#1c61e7] focus:ring-[#1c61e7]"
           />
           <span className="text-sm text-gray-700">En stock uniquement</span>

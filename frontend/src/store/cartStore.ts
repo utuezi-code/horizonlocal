@@ -25,6 +25,7 @@ export const useCartStore = create<CartState>()(
     {
       name: 'cart-store',
       partialize: (state) => ({ cart: state.cart }),
+      skipHydration: true,
     }
   )
 );

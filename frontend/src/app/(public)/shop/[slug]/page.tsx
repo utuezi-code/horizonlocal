@@ -1,5 +1,3 @@
-'use server';
-
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Star, Truck, Shield, RotateCcw, MapPin } from 'lucide-react';
