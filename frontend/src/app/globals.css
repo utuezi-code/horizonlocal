@@ -19,6 +19,10 @@
 :root {
   --background: #ffffff;
   --foreground: #333333;
+  --brand-primary: #1c61e7;
+  --brand-primary-dark: #1648b0;
+  --brand-accent: #f97316;
+  --brand-accent-dark: #ea6c0a;
 }
 
 body {
@@ -47,4 +51,22 @@ body {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Hide scrollbars while preserving scroll for horizontal carousels */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth horizontal snap */
+.snap-x-smooth {
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+}
+.snap-x-smooth > * {
+  scroll-snap-align: start;
 }
