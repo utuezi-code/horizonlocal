@@ -1,6 +1,6 @@
 FROM php:8.3-fpm-alpine AS base
 
-# System deps
+# System deps + build tools for PECL
 RUN apk add --no-cache \
     nginx \
     supervisor \
@@ -11,12 +11,20 @@ RUN apk add --no-cache \
     oniguruma-dev \
     redis \
     bash \
-    curl
+    curl \
+ && apk add --no-cache --virtual .build-deps \
+    $PHPIZE_DEPS \
+    autoconf \
+    gcc \
+    g++ \
+    make \
+    linux-headers
 
 # PHP extensions
 RUN docker-php-ext-install pdo pdo_pgsql zip intl bcmath opcache pcntl \
  && pecl install redis \
- && docker-php-ext-enable redis
+ && docker-php-ext-enable redis \
+ && apk del .build-deps
 
 # Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
