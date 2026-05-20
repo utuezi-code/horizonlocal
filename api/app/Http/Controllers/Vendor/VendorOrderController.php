@@ -75,4 +75,31 @@ class VendorOrderController extends Controller
 
         return response()->json(['order_item' => $orderItem]);
     }
+
+    public function updateTracking(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'tracking_number' => ['required', 'string', 'max:100'],
+            'carrier'         => ['required', 'string', 'in:canadapost,purolator,fedex,ups,autre'],
+        ]);
+
+        $vendor = $this->getVendor($request);
+
+        $order = \App\Models\Order::whereHas('items', fn($q) => $q->where('vendor_id', $vendor->id))
+            ->findOrFail($id);
+
+        $order->update([
+            'tracking_number' => $request->tracking_number,
+            'carrier'         => $request->carrier,
+            'status'          => 'shipped',
+        ]);
+
+        $order->statusHistory()->create([
+            'status'     => 'shipped',
+            'note'       => "Expédié via {$request->carrier} — n° {$request->tracking_number}",
+            'changed_by' => $request->user()->id,
+        ]);
+
+        return response()->json(['message' => 'Suivi mis à jour.', 'order' => $order]);
+    }
 }

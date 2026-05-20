@@ -86,6 +86,20 @@ class CartService
     }
 
     /**
+     * Calculate discount amount from a coupon rule.
+     */
+    public function calculateDiscount(Cart $cart, \App\Models\DiscountRule $coupon): float
+    {
+        $subtotal = $this->getTotal($cart);
+
+        if ($coupon->type === 'percentage') {
+            return round($subtotal * ($coupon->value / 100), 2);
+        }
+
+        return min((float) $coupon->value, $subtotal);
+    }
+
+    /**
      * Merge a guest cart into a user cart on login.
      */
     public function merge(Cart $guestCart, Cart $userCart): void

@@ -50,6 +50,7 @@ Route::get('/categories/{slug}/products', [CategoryController::class, 'products'
 Route::get('/vendors', [VendorController::class, 'index']);
 Route::get('/vendors/{slug}', [VendorController::class, 'show']);
 Route::get('/search', [SearchController::class, 'index']);
+Route::get('/search/suggestions', [SearchController::class, 'suggestions']);
 
 // Public blog (read-only)
 Route::get('/blog', [BlogController::class, 'index']);
@@ -76,13 +77,15 @@ Route::prefix('auth')->group(function () {
 // Authenticated routes
 Route::middleware('auth:sanctum')->group(function () {
 
-    // Cart (supports guest via session_id header)
+    // Cart
     Route::prefix('cart')->group(function () {
         Route::get('/', [CartController::class, 'show']);
         Route::post('/items', [CartController::class, 'addItem']);
         Route::put('/items/{id}', [CartController::class, 'updateItem']);
         Route::delete('/items/{id}', [CartController::class, 'removeItem']);
         Route::delete('/', [CartController::class, 'clear']);
+        Route::post('/coupon', [CartController::class, 'applyCoupon']);
+        Route::delete('/coupon', [CartController::class, 'removeCoupon']);
     });
 
     // Checkout
@@ -90,12 +93,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/shipping', [CheckoutController::class, 'calculateShipping']);
         Route::post('/taxes', [CheckoutController::class, 'calculateTaxes']);
         Route::post('/payment-intent', [CheckoutController::class, 'createPaymentIntent']);
+        Route::post('/place-order', [CheckoutController::class, 'placeOrder']);
     });
 
     // My account
     Route::prefix('my-account')->group(function () {
         Route::get('/orders', [OrderController::class, 'index']);
         Route::get('/orders/{id}', [OrderController::class, 'show']);
+        Route::post('/orders/{id}/cancel', [OrderController::class, 'cancel']);
+        Route::post('/orders/{id}/return', [OrderController::class, 'requestReturn']);
+        Route::post('/orders/{id}/rebuy', [OrderController::class, 'rebuy']);
     });
 
     // Wishlist
@@ -141,6 +148,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/orders', [VendorOrderController::class, 'index']);
         Route::get('/orders/{id}', [VendorOrderController::class, 'show']);
         Route::put('/orders/{id}/fulfillment', [VendorOrderController::class, 'updateFulfillment']);
+        Route::patch('/orders/{id}/tracking', [VendorOrderController::class, 'updateTracking']);
 
         // Earnings
         Route::get('/earnings', [VendorEarningsController::class, 'index']);

@@ -115,4 +115,61 @@ class CheckoutController extends Controller
             ], 500);
         }
     }
+
+    public function placeOrder(Request $request): JsonResponse
+    {
+        $request->validate([
+            'payment_intent_id' => ['required', 'string'],
+            'shipping_address'  => ['required', 'array'],
+            'province'          => ['required', 'string', 'size:2'],
+        ]);
+
+        $user   = $request->user();
+        $cart   = $this->cartService->getOrCreate($user->id, null);
+        $cart->load('items.product.vendor');
+
+        if ($cart->items()->count() === 0) {
+            return response()->json(['message' => 'Le panier est vide.'], 422);
+        }
+
+        $subtotal    = $this->cartService->getTotal($cart);
+        $discount    = (float) ($cart->discount_amount ?? 0);
+        $shipping    = $this->shippingCalculator->calculate($cart, $request->province);
+        $shipCost    = array_sum(array_column($shipping, 'fee'));
+        $taxes       = $this->taxService->calculate($subtotal - $discount + $shipCost, $request->province);
+
+        $order = \App\Models\Order::create([
+            'customer_id'       => $user->id,
+            'status'            => 'pending',
+            'subtotal'          => $subtotal,
+            'discount_amount'   => $discount,
+            'coupon_code'       => $cart->coupon_code,
+            'shipping_cost'     => round($shipCost, 2),
+            'tax_gst'           => $taxes['tps'],
+            'tax_tvq'           => $taxes['tvq'],
+            'total'             => $taxes['total'] + $shipCost - $discount,
+            'shipping_address'  => $request->shipping_address,
+            'payment_intent_id' => $request->payment_intent_id,
+        ]);
+
+        foreach ($cart->items as $item) {
+            $order->items()->create([
+                'product_id'  => $item->product_id,
+                'vendor_id'   => $item->product->vendor_id,
+                'variant_id'  => $item->variant_id,
+                'quantity'    => $item->quantity,
+                'unit_price'  => $item->variant?->price ?? $item->product->price,
+                'total_price' => ($item->variant?->price ?? $item->product->price) * $item->quantity,
+                'status'      => 'pending',
+            ]);
+        }
+
+        $cart->items()->delete();
+        $cart->update(['coupon_code' => null, 'discount_amount' => 0]);
+
+        return response()->json([
+            'message' => 'Commande passée avec succès.',
+            'order'   => $order->load('items.product'),
+        ], 201);
+    }
 }

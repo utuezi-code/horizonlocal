@@ -95,4 +95,42 @@ class CartController extends Controller
 
         return response()->json(['message' => 'Panier vidé avec succès.']);
     }
+
+    public function applyCoupon(Request $request): JsonResponse
+    {
+        $request->validate([
+            'code' => ['required', 'string', 'max:50'],
+        ]);
+
+        $coupon = \App\Models\DiscountRule::where('code', strtoupper($request->code))
+            ->where('is_active', true)
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->first();
+
+        if (!$coupon) {
+            return response()->json(['message' => 'Code promo invalide ou expiré.'], 422);
+        }
+
+        $cart = $this->getCart($request);
+        $cart->update([
+            'coupon_code'     => strtoupper($request->code),
+            'discount_amount' => $this->cartService->calculateDiscount($cart, $coupon),
+        ]);
+
+        return response()->json([
+            'message'         => 'Code promo appliqué.',
+            'coupon_code'     => $cart->coupon_code,
+            'discount_amount' => $cart->discount_amount,
+        ]);
+    }
+
+    public function removeCoupon(Request $request): JsonResponse
+    {
+        $cart = $this->getCart($request);
+        $cart->update(['coupon_code' => null, 'discount_amount' => 0]);
+
+        return response()->json(['message' => 'Code promo retiré.']);
+    }
 }
