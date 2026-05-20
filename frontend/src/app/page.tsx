@@ -14,6 +14,7 @@ import { PromoCodes } from '@/components/home/PromoCodes';
 import { NewArrivals } from '@/components/home/NewArrivals';
 import { NewsletterForm } from '@/components/home/NewsletterForm';
 import { Countdown } from '@/components/ui/Countdown';
+import type { Product } from '@/types';
 
 const quickCategories = [
   { name: 'Alimentation', slug: 'alimentation', emoji: '🥗', color: 'from-emerald-100 to-emerald-200' },
@@ -46,10 +47,24 @@ function formatCAD(amount: number) {
   return new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(amount);
 }
 
-// Deal of the day ends 24h from now (computed on the server at render time).
-const dealEndsAt = new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString();
+export default async function HomePage() {
+  let newArrivalsProducts: Product[] = [];
+  try {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api';
+    const res = await fetch(`${apiBase}/products?sort_by=created_at&sort_dir=desc&per_page=8`, {
+      cache: 'no-store',
+    });
+    if (res.ok) {
+      const data = await res.json();
+      newArrivalsProducts = data.data ?? [];
+    }
+  } catch {
+    // API unreachable — section hidden
+  }
 
-export default function HomePage() {
+  // Deal of the day ends 24h from now (computed on the server at render time).
+  const dealEndsAt = new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString();
+
   return (
     <div className="flex flex-col">
       {/* a. Hero carousel */}
@@ -83,7 +98,7 @@ export default function HomePage() {
       <PromoCodes />
 
       {/* d. Nouveautés */}
-      <NewArrivals />
+      <NewArrivals products={newArrivalsProducts} />
 
       {/* e. Deal of the day */}
       <section className="py-14 bg-white">
@@ -120,7 +135,7 @@ export default function HomePage() {
                 </div>
                 <div>
                   <Link
-                    href="/shop/coffret-decouverte"
+                    href="/shop?featured=1"
                     className="inline-flex items-center gap-2 bg-white text-[#c2410c] font-bold px-6 py-3 rounded-xl hover:bg-orange-50 transition-colors shadow"
                   >
                     Profiter de l’offre

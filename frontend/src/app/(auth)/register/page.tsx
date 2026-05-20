@@ -28,7 +28,13 @@ export default function RegisterPage() {
       await register(form);
       router.push('/my-account');
     } catch (err: unknown) {
-      setError('Une erreur est survenue. Veuillez vérifier vos informations.');
+      const axiosErr = err as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } };
+      const validationErrors = axiosErr.response?.data?.errors;
+      if (validationErrors) {
+        setError(Object.values(validationErrors).flat().join(' '));
+      } else {
+        setError(axiosErr.response?.data?.message ?? 'Une erreur est survenue. Veuillez réessayer.');
+      }
     } finally {
       setLoading(false);
     }

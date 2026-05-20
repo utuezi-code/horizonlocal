@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { X, ShoppingBag } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useCart } from '@/hooks/useCart';
+import { useAuthStore } from '@/store/authStore';
 import { CartItem } from './CartItem';
 import { formatPrice } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
@@ -12,7 +13,14 @@ import { cn } from '@/lib/utils';
 
 export function CartDrawer() {
   const { isOpen, closeCart } = useCartStore();
-  const { cart } = useCart();
+  const { cart, fetchCart } = useCart();
+  const token = useAuthStore((s) => s.token);
+
+  useEffect(() => {
+    if (isOpen && token) {
+      fetchCart();
+    }
+  }, [isOpen, token, fetchCart]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
