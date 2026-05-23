@@ -79,6 +79,7 @@ export interface Product {
   compare_price?: number;
   price_from?: number;
   stock: number;
+  manage_stock?: boolean;
   status: 'draft' | 'pending_review' | 'published' | 'rejected' | 'archived';
   is_featured: boolean;
   images: ProductImage[];

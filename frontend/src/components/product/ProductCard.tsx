@@ -81,7 +81,7 @@ export function ProductCard({
               Promo -{Math.round(((product.compare_price - product.price) / product.compare_price) * 100)}%
             </span>
           )}
-          {product.stock === 0 && (
+          {product.manage_stock === true && product.stock === 0 && (
             <span className="bg-gray-900 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded">
               Rupture
             </span>
@@ -132,7 +132,7 @@ export function ProductCard({
         >
           <button
             onClick={handleAddToCart}
-            disabled={product.stock === 0 || addingToCart}
+            disabled={(product.manage_stock === true && product.stock === 0) || addingToCart}
             className="w-full py-2.5 bg-[#1c61e7] text-white text-sm font-medium hover:bg-[#1a56d0] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
           >
             <ShoppingCart className="h-4 w-4" />
