@@ -110,7 +110,7 @@ services:
       - "3000:3000"
     # Build then start the production server (not dev mode).
     command: >
-      sh -c "npm install --prefer-offline &&
+      sh -c "npm install --prefer-offline --include=dev &&
              npm run build &&
              npm start"
     environment:
