@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, Scale, Eye, ShoppingCart } from 'lucide-react';
@@ -8,6 +9,7 @@ import { Product } from '@/types';
 import { PriceDisplay } from '@/components/ui/PriceDisplay';
 import { StockBadge } from '@/components/ui/StockBadge';
 import { useCart } from '@/hooks/useCart';
+import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
 
 interface ProductCardProps {
@@ -28,6 +30,8 @@ export function ProductCard({
   const [hovered, setHovered] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
   const { addToCart } = useCart();
+  const { token } = useAuthStore();
+  const router = useRouter();
 
   const primaryImage = product.images?.find((img) => img.is_primary) || product.images?.[0];
   const secondaryImage = product.images?.[1];
@@ -35,11 +39,15 @@ export function ProductCard({
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!token) {
+      router.push('/login');
+      return;
+    }
     setAddingToCart(true);
     try {
       await addToCart(product.id, undefined, 1);
     } catch {
-      // Handle error
+      // silently ignore — cart drawer shows current state
     } finally {
       setAddingToCart(false);
     }

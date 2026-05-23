@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Tag, ShoppingBag } from 'lucide-react';
 import { Countdown } from '@/components/ui/Countdown';
+import { CopyCodeButton } from '@/components/ui/CopyCodeButton';
 
 const GRADIENTS = [
   'from-pink-500 to-rose-500',
@@ -67,12 +68,7 @@ export default async function PromotionsPage() {
               <div className="p-5 space-y-4">
                 {promo.description && <p className="text-gray-600 text-sm">{promo.description}</p>}
 
-                {promo.code && (
-                  <div className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3">
-                    <span className="text-sm text-gray-500">Code promo :</span>
-                    <code className="font-mono font-bold text-[#1c61e7] tracking-wider">{promo.code}</code>
-                  </div>
-                )}
+                {promo.code && <CopyCodeButton code={promo.code} />}
 
                 {promo.ends_at && (
                   <div>
