@@ -24,28 +24,30 @@ import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
 import { useAuth } from '@/hooks/useAuth';
 
-const categories = [
+const FALLBACK_CATEGORIES = [
   { slug: 'alimentation', label: 'Alimentation' },
   { slug: 'mode', label: 'Mode' },
   { slug: 'maison', label: 'Maison & Déco' },
-  { slug: 'beaute', label: 'Beauté & Santé' },
+  { slug: 'beaute-sante', label: 'Beauté & Santé' },
   { slug: 'electronique', label: 'Électronique' },
-  { slug: 'sport', label: 'Sport & Loisirs' },
-  { slug: 'bebe', label: 'Bébé & Enfants' },
-  { slug: 'arts', label: 'Arts & Artisanat' },
-  { slug: 'jardin', label: 'Jardin' },
+  { slug: 'sport-loisirs', label: 'Sport & Loisirs' },
+  { slug: 'bebe-enfants', label: 'Bébé & Enfants' },
 ];
 
-const searchCategories = [
-  { value: '', label: 'Toutes catégories' },
-  ...categories.map((c) => ({ value: c.slug, label: c.label })),
-];
 
 function formatCAD(amount: number) {
   return new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(amount);
 }
 
-export function Header() {
+export function Header({ navCategories }: { navCategories?: { slug: string; name: string }[] }) {
+  const categories = navCategories?.length
+    ? navCategories.map((c) => ({ slug: c.slug, label: c.name }))
+    : FALLBACK_CATEGORIES;
+
+  const searchCategories = [
+    { value: '', label: 'Toutes catégories' },
+    ...categories.map((c) => ({ value: c.slug, label: c.label })),
+  ];
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchCategory, setSearchCategory] = useState('');
