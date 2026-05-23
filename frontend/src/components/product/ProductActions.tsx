@@ -14,6 +14,11 @@ export function ProductActions({ product }: { product: Product }) {
   const { addToWishlist, isInWishlist } = useWishlist();
 
   const handleAddToCart = async () => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    if (!token) {
+      window.location.href = '/login';
+      return;
+    }
     setLoading(true);
     try {
       await addToCart(product.id, undefined, quantity);

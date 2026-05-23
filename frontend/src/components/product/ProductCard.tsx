@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, Scale, Eye, ShoppingCart } from 'lucide-react';
@@ -9,7 +8,6 @@ import { Product } from '@/types';
 import { PriceDisplay } from '@/components/ui/PriceDisplay';
 import { StockBadge } from '@/components/ui/StockBadge';
 import { useCart } from '@/hooks/useCart';
-import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
 
 interface ProductCardProps {
@@ -30,8 +28,6 @@ export function ProductCard({
   const [hovered, setHovered] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
   const { addToCart } = useCart();
-  const { token } = useAuthStore();
-  const router = useRouter();
 
   const primaryImage = product.images?.find((img) => img.is_primary) || product.images?.[0];
   const secondaryImage = product.images?.[1];
@@ -39,15 +35,18 @@ export function ProductCard({
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    // Auth check via localStorage (Zustand store is unreliable pre-hydration).
+    // api.ts interceptor handles 401 by redirecting to /login automatically.
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
     if (!token) {
-      router.push('/login');
+      window.location.href = '/login';
       return;
     }
     setAddingToCart(true);
     try {
       await addToCart(product.id, undefined, 1);
     } catch {
-      // silently ignore — cart drawer shows current state
+      // api.ts handles 401 → redirect to login; other errors are non-critical
     } finally {
       setAddingToCart(false);
     }
