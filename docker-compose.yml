@@ -7,9 +7,12 @@
 #   STRIPE_KEY=pk_live_...          # or pk_test_... for test mode
 #   STRIPE_SECRET=sk_live_...       # or sk_test_... for test mode
 #   STRIPE_WEBHOOK_SECRET=whsec_... # from your Stripe dashboard
-#   PUBLIC_URL=http://YOUR_AZURE_VM_IP  # e.g. http://20.1.2.3
+#   PUBLIC_URL=http://YOUR_AZURE_VM_IP  # e.g. http://20.86.32.162 (no trailing slash)
 #
 # Then run:  docker compose up -d --build
+#
+# The site will be available at http://YOUR_AZURE_VM_IP (port 80).
+# Make sure port 80 is open in your Azure Network Security Group.
 ##############################################################################
 
 services:
@@ -57,7 +60,7 @@ services:
       APP_ENV: production
       APP_DEBUG: "false"
       APP_KEY: ${APP_KEY:-base64:HpN/CsBX1wje9tEb79TlO91Usue7cI0IoTiMCL9x5oA=}
-      APP_URL: ${PUBLIC_URL:-http://localhost}:8000
+      APP_URL: ${PUBLIC_URL:-http://localhost}
       APP_LOCALE: fr
       APP_FALLBACK_LOCALE: fr
 
@@ -83,7 +86,18 @@ services:
       MAIL_FROM_ADDRESS: noreply@horizonlocal.ca
       MAIL_FROM_NAME: "Horizon Local"
 
-      FRONTEND_URL: ${PUBLIC_URL:-http://localhost}:3000
+      FRONTEND_URL: ${PUBLIC_URL:-http://localhost}
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+      - frontend
     restart: unless-stopped
 
   frontend:
@@ -102,8 +116,8 @@ services:
     environment:
       # Server-side (SSR/RSC) fetches go to the api container directly.
       API_URL: http://api:8080/api
-      # Browser fetches go to the public URL — set PUBLIC_URL in .env.
-      NEXT_PUBLIC_API_URL: ${PUBLIC_URL:-http://localhost}:8000/api
+      # Browser fetches go through nginx on port 80.
+      NEXT_PUBLIC_API_URL: ${PUBLIC_URL:-http://localhost}/api
       NEXT_PUBLIC_APP_NAME: "Horizon Local"
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${STRIPE_KEY:-}
       NODE_ENV: production
