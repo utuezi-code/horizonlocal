@@ -12,6 +12,7 @@ interface SidebarProps {
   currentMin?: number;
   currentMax?: number;
   inStockOnly?: boolean;
+  basePath?: string;
 }
 
 function CategoryItem({ category, depth = 0 }: { category: Category; depth?: number }) {
@@ -57,6 +58,7 @@ export function Sidebar({
   currentMin = 0,
   currentMax = 1000,
   inStockOnly = false,
+  basePath = '/shop',
 }: SidebarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -70,7 +72,7 @@ export function Sidebar({
       else params.set(k, v);
     });
     params.delete('page');
-    router.push(`/shop?${params.toString()}`);
+    router.push(`${basePath}?${params.toString()}`);
   };
 
   const handlePriceApply = () => {

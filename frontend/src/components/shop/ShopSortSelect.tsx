@@ -10,7 +10,7 @@ const SORT_OPTIONS = [
   { value: 'name|asc',        label: 'Nom A-Z' },
 ];
 
-export function ShopSortSelect({ currentSort }: { currentSort: string }) {
+export function ShopSortSelect({ currentSort, basePath = '/shop' }: { currentSort: string; basePath?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -20,7 +20,7 @@ export function ShopSortSelect({ currentSort }: { currentSort: string }) {
     params.set('sort_by', sortBy);
     params.set('sort_dir', sortDir);
     params.delete('page');
-    router.push(`/shop?${params.toString()}`);
+    router.push(`${basePath}?${params.toString()}`);
   };
 
   return (
